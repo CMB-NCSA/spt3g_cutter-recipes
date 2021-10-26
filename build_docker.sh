@@ -4,7 +4,7 @@ export UID_NUMBER=1006
 export MINICONDA_PATH=/opt/miniconda3
 export SPT3G_CUTTER_VERSION=0.2.1
 export TAG=dev
-export IMAGE=spt-cutter
+export IMAGE=spt3g_cutter
 docker build -f docker/Dockerfile -t menanteau/$IMAGE:$TAG \
        --build-arg SPTUSER \
        --build-arg UID_NUMBER \

@@ -39,7 +39,7 @@ ENV USER $SPTUSER
 ENV HOME /home/$SPTUSER
 ENV SHELL /bin/bash
 
-COPY spt-cutter/startup.sh $HOME/.startup.sh
+COPY docker/startup.sh $HOME/.startup.sh
 
 RUN chmod a+x /home/$SPTUSER/.startup.sh && \
     chown $SPTUSER:$SPTUSER /home/$SPTUSER/.startup.sh
