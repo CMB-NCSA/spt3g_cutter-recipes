@@ -1,54 +1,62 @@
 FROM centos:7
 
-ARG MINICONDA_PATH
-ARG SPT3G_CUTTER_VERSION=0.2.0
+ARG SPT3G_CUTTER_VERSION
+ARG UID_NUMBER=1006
+ARG SPTUSER=sptworker
+ARG SPTHOME=/home/${SPTUSER}
+ARG MINICONDA_PATH=${SPTHOME}/miniconda
+ARG MINICONDA_INSTALL_FILE=Miniconda3-py38_4.10.3-Linux-x86_64.sh
 
-RUN yum -y update
-RUN yum -y install epel-release
-RUN yum -y install which wget git make
-RUN yum -y install fpack screen
+ENV MINICONDA_PATH ${MINICONDA_PATH}
 
-# Conda installation, using python38
-RUN mkdir -p ${MINICONDA_PATH} \
-    && cd ${MINOCONDA_PATH} \
-    && wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.10.3-Linux-x86_64.sh\
-    && chmod +x Miniconda3-py38_4.10.3-Linux-x86_64.sh \
-    && ./Miniconda3-py38_4.10.3-Linux-x86_64.sh -b -p ${MINICONDA_PATH} -u
-
-# Start the env and add channels
-RUN source $MINICONDA_PATH/bin/activate &&\
-    conda config --add channels conda-forge
-
-RUN source $MINICONDA_PATH/bin/activate && \
-    conda install -y astropy=4.1 fitsio pandas && \
-    conda install -y -c conda-forge esutil pyaml-env && \
-    conda install -y -c menanteau spt3g_cutter==${SPT3G_CUTTER_VERSION}
+RUN yum -y update && \
+    yum -y install \
+    epel-release \
+    which \
+    wget \
+    git \
+    make \
+    fpack \
+    screen \
+    && yum -y clean all && rm -rf /var/cache
 
 # Add $SPTUSER as user and create groups wheel and spt
-ARG UID_NUMBER
-ARG SPTUSER
-RUN adduser --shell /bin/bash -u $UID_NUMBER $SPTUSER && \
+RUN adduser --uid ${UID_NUMBER} --home ${SPTHOME} --shell /bin/bash ${SPTUSER} && \
     groupadd --gid 1003 spt
 
-# Make mount directory to mirror /data/spt3g
 RUN mkdir -p /data/spt3g && \
     chgrp spt /data/spt3g && \
     chmod g+wrx /data/spt3g
 
-ENV USER $SPTUSER
-ENV HOME /home/$SPTUSER
-ENV SHELL /bin/bash
+USER ${SPTUSER}
+WORKDIR ${SPTHOME}
 
-COPY docker/startup.sh $HOME/.startup.sh
+# Conda installation, using python38
+RUN mkdir -p ${MINICONDA_PATH} \
+    && cd ${MINICONDA_PATH} \
+    && wget https://repo.anaconda.com/miniconda/${MINICONDA_INSTALL_FILE} \
+    && chmod +x ${MINICONDA_INSTALL_FILE} \
+    && ./${MINICONDA_INSTALL_FILE} -b -p ${MINICONDA_PATH} -u \
+    && rm ${MINICONDA_INSTALL_FILE}
 
-RUN chmod a+x /home/$SPTUSER/.startup.sh && \
-    chown $SPTUSER:$SPTUSER /home/$SPTUSER/.startup.sh
+# Start the env and add channels and base dependencies
+RUN source $MINICONDA_PATH/bin/activate && \
+    conda config --add channels conda-forge && \
+    conda install conda-build
 
-ARG SPTHOME=/home/${SPTUSER}
+# Install spt-cutter package dependencies
+RUN source $MINICONDA_PATH/bin/activate && \
+    conda install -y astropy=4.1 fitsio pandas && \
+    conda install -y -c conda-forge esutil pyaml-env
 
-USER $SPTUSER
-WORKDIR /home/$SPTUSER
-ENV MINICONDA_PATH ${MINICONDA_PATH}
+# Build the spt-cutter conda package and install
+COPY --chown=${SPTUSER}:${SPTUSER} conda src/spt-cutter
+RUN source $MINICONDA_PATH/bin/activate && \
+    conda build src/spt-cutter && \
+    conda install $(ls ${MINICONDA_PATH}/conda-bld/*/spt3g_cutter-${SPT3G_CUTTER_VERSION}*.tar.bz2) && \
+    rm $(ls ${MINICONDA_PATH}/conda-bld/*/spt3g_cutter-${SPT3G_CUTTER_VERSION}*.tar.bz2)
 
-# Start with conda and spt_cutter initialized
+# Use entrypoint script to start with conda and spt_cutter initialized
+COPY --chown=${SPTUSER}:${SPTUSER} docker/startup.sh .startup.sh
+RUN chmod a+x .startup.sh
 ENTRYPOINT ["sh",".startup.sh"]

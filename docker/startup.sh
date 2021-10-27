@@ -20,4 +20,5 @@ echo "Starting conda env from: ${MINICONDA_PATH}"
 source ${MINICONDA_PATH}/bin/activate base
 source $CONDA_PREFIX/spt3g_cutter/setpath.sh $CONDA_PREFIX/spt3g_cutter
 
-/bin/bash --rcfile ~/.bashrc
+args=("$@") 
+exec "${args[@]}"
