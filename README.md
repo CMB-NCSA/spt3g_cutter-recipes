@@ -12,8 +12,8 @@ The Docker image is based on CentOS, using Conda to install the Python packages.
 
 ```bash
 # Specify the version of spt3g_cutter to build
-export SPT3G_CUTTER_VERSION=0.2.1
-export IMAGE_REPO=registry.example.com/spt-cutter
+export SPT3G_CUTTER_VERSION=0.2.2
+export IMAGE_REPO=registry.gitlab.com/spt3g/kubernetes/spt3g_cutter
 # Clone this repo
 git clone https://github.com/CMB-NCSA/spt3g_cutter-recipes
 cd spt3g_cutter-recipes
