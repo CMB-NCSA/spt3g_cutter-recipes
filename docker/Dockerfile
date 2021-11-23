@@ -47,14 +47,15 @@ RUN source $MINICONDA_PATH/bin/activate && \
 # Install spt-cutter package dependencies
 RUN source $MINICONDA_PATH/bin/activate && \
     conda install -y astropy=4.1 fitsio pandas && \
-    conda install -y -c conda-forge esutil pyaml-env
+    conda install -y -c conda-forge esutil pyaml-env && \
+    # Install the spt3g_cutter
+    cd /tmp &&\
+    git clone https://github.com/CMB-NCSA/spt3g_cutter -b $SPT3G_CUTTER_VERSION && \
+    cd spt3g_cutter && \
+    python setup.py install
 
-# Build the spt-cutter conda package and install
 COPY --chown=${SPTUSER}:${SPTUSER} conda src/spt-cutter
-RUN source $MINICONDA_PATH/bin/activate && \
-    conda build src/spt-cutter && \
-    conda install $(ls ${MINICONDA_PATH}/conda-bld/*/spt3g_cutter-${SPT3G_CUTTER_VERSION}*.tar.bz2) && \
-    rm $(ls ${MINICONDA_PATH}/conda-bld/*/spt3g_cutter-${SPT3G_CUTTER_VERSION}*.tar.bz2)
+
 
 # Use entrypoint script to start with conda and spt_cutter initialized
 COPY --chown=${SPTUSER}:${SPTUSER} docker/startup.sh .startup.sh

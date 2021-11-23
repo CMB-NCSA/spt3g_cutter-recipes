@@ -18,7 +18,6 @@ trap 'kill ${!}; term_handler' SIGTERM
 
 echo "Starting conda env from: ${MINICONDA_PATH}"
 source ${MINICONDA_PATH}/bin/activate base
-source $CONDA_PREFIX/spt3g_cutter/setpath.sh $CONDA_PREFIX/spt3g_cutter
 
-args=("$@") 
+args=("$@")
 exec "${args[@]}"
