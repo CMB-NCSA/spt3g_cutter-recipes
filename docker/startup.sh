@@ -19,5 +19,4 @@ trap 'kill ${!}; term_handler' SIGTERM
 echo "Starting conda env from: ${MINICONDA_PATH}"
 source ${MINICONDA_PATH}/bin/activate base
 
-args=("$@")
-exec "${args[@]}"
+/bin/bash --rcfile ~/.bashrc
