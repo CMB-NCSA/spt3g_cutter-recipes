@@ -46,7 +46,7 @@ RUN source $MINICONDA_PATH/bin/activate && \
 
 # Install spt-cutter package dependencies
 RUN source $MINICONDA_PATH/bin/activate && \
-    conda install -y astropy=4.1 fitsio pandas && \
+    conda install -y astropy fitsio pandas && \
     conda install -y -c conda-forge esutil pyaml-env && \
     # Install the spt3g_cutter
     cd /tmp &&\
