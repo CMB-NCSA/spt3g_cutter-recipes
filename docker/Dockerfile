@@ -1,24 +1,31 @@
-FROM centos:7
+FROM ubuntu:24.04
 
 ARG SPT3G_CUTTER_VERSION
 ARG UID_NUMBER=1006
 ARG SPTUSER=sptworker
 ARG SPTHOME=/home/${SPTUSER}
-ARG MINICONDA_PATH=${SPTHOME}/miniconda
-ARG MINICONDA_INSTALL_FILE=Miniconda3-py38_4.10.3-Linux-x86_64.sh
 
-ENV MINICONDA_PATH ${MINICONDA_PATH}
+RUN apt-get update --fix-missing
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends tzdata
+RUN apt-get update --fix-missing
+RUN apt-get install -y wget emacs git
+RUN apt-get install -y screen time
+RUN apt-get install -y libcfitsio-bin
 
-RUN yum -y update && \
-    yum -y install \
-    epel-release \
-    which \
-    wget \
-    git \
-    make \
-    fpack \
-    screen \
-    && yum -y clean all && rm -rf /var/cache
+# Astropy/numpy/scipy
+RUN apt-get install -y python3-numpy python3-scipy python3-astropy python3-numexpr
+RUN apt-get install -y screen time
+RUN apt-get install -y python-is-python3
+RUN apt-get install -y python3-healpy python3-fitsio python3-pandas python3-yaml python3-magic python3-sphinx python3-matplotlib
+# This trick install distutils under the hood
+RUN apt-get install -y python3-pip
+RUN apt-get install -y python3-pyaml-env python3-psutil
+
+RUN mkdir -p /opt/spt \
+    && cd /opt/spt
+WORKDIR /opt/spt
+
+RUN git clone https://github.com/CMB-NCSA/spt3g_cutter -b $SPT3G_CUTTER_VERSION
 
 # Add $SPTUSER as user and create groups wheel and spt
 RUN adduser --uid ${UID_NUMBER} --home ${SPTHOME} --shell /bin/bash ${SPTUSER} && \
@@ -28,36 +35,10 @@ RUN mkdir -p /data/spt3g && \
     chgrp spt /data/spt3g && \
     chmod g+wrx /data/spt3g
 
+COPY docker/setSPTEnv.sh /opt/spt/setSPTEnv.sh
+
 USER ${SPTUSER}
 WORKDIR ${SPTHOME}
 
-# Conda installation, using python38
-RUN mkdir -p ${MINICONDA_PATH} \
-    && cd ${MINICONDA_PATH} \
-    && wget https://repo.anaconda.com/miniconda/${MINICONDA_INSTALL_FILE} \
-    && chmod +x ${MINICONDA_INSTALL_FILE} \
-    && ./${MINICONDA_INSTALL_FILE} -b -p ${MINICONDA_PATH} -u \
-    && rm ${MINICONDA_INSTALL_FILE}
-
-# Start the env and add channels and base dependencies
-RUN source $MINICONDA_PATH/bin/activate && \
-    conda config --add channels conda-forge && \
-    conda install conda-build
-
-# Install spt-cutter package dependencies
-RUN source $MINICONDA_PATH/bin/activate && \
-    conda install -y astropy fitsio pandas=1.2.5 && \
-    conda install -y -c conda-forge esutil pyaml-env && \
-    # Install the spt3g_cutter
-    cd /tmp &&\
-    git clone https://github.com/CMB-NCSA/spt3g_cutter -b $SPT3G_CUTTER_VERSION && \
-    cd spt3g_cutter && \
-    python setup.py install
-
-COPY --chown=${SPTUSER}:${SPTUSER} conda src/spt-cutter
-
-
-# Use entrypoint script to start with conda and spt_cutter initialized
-COPY --chown=${SPTUSER}:${SPTUSER} docker/startup.sh .startup.sh
-RUN chmod a+x .startup.sh
-ENTRYPOINT ["sh",".startup.sh"]
+# Start with the right miniconda environment
+RUN cat /opt/spt/setSPTEnv.sh >> $HOME/.bashrc
