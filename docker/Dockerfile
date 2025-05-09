@@ -40,5 +40,11 @@ COPY docker/setSPTEnv.sh /opt/spt/setSPTEnv.sh
 USER ${SPTUSER}
 WORKDIR ${SPTHOME}
 
+# Set environment in the container
+ENV PRODUCT_DIR="/opt/spt/spt3g_cutter"
+ENV SPT3G_CUTTER_DIR=${PRODUCT_DIR}
+ENV PYTHONPATH=${PRODUCT_DIR}/python:${PYTHONPATH}
+ENV PATH=${PRODUCT_DIR}/bin:${PATH}
+
 # Start with the right miniconda environment
 RUN cat /opt/spt/setSPTEnv.sh >> $HOME/.bashrc
